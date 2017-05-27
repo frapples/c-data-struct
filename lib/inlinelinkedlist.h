@@ -18,7 +18,7 @@ typedef struct{
 
 #define DECLARE_INLINE_LIST    inline_node_t __inline_node
 #define INLINE_LIST_OFFSET(type) offsetof(type, __inline_node)
-#define INLINE_LIST_NEXT(p, type) ((type*)(((inline_node_t*)((p) + (INLINE_LIST_OFFSET(type))))->next))
+#define INLINE_LIST_NEXT(p, type) ((type *)(((inline_node_t*)((p) + INLINE_LIST_OFFSET(type)))->next))
 
 void inline_list_preappend(void** node, void* insert_node, size_t struct_offset);
 void inline_list_append(void** prenode, void* insert_node, size_t struct_offset);

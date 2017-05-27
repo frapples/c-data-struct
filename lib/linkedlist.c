@@ -3,7 +3,7 @@
 #include "alloc.h"
 
 
-#define NEXT(p) INLINE_LIST_NEXT(p, linked_node_t)
+#define NEXT(p) LINKED_LIST_NEXT(p)
 #define OFFSET INLINE_LIST_OFFSET(linked_node_t)
 
 linked_node_t* linked_list_create_empty()
@@ -18,13 +18,12 @@ inline static linked_node_t* create_node(void* data)
     return node;
 }
 
-void linked_list_destory(linked_node_t* list)
+void linked_list_destory(linked_node_t** list)
 {
-    linked_node_t* cur = list;
-    while (cur != NULL) {
-        linked_node_t* next = NEXT(cur);
-        fds_free(cur);
-        cur = next;
+    while (*list != NULL) {
+        linked_node_t* next = NEXT(*list);
+        fds_free(*list);
+        *list = next;
     }
 }
 
@@ -42,4 +41,5 @@ void linked_list_preappend(linked_node_t** node, void* data)
 void linked_list_remove(linked_node_t** node)
 {
     inline_list_remove((void**)node, OFFSET);
+    fds_free(node);
 }

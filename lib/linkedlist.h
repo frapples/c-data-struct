@@ -10,9 +10,10 @@ typedef struct {
 
 
 
+#define LINKED_LIST_NEXT(p) INLINE_LIST_NEXT(p, linked_node_t)
 
 linked_node_t* linked_list_create_empty();
-void linked_list_destory(linked_node_t* list);
+void linked_list_destory(linked_node_t** list);
 
 void linked_list_append(linked_node_t** node, void* data);
 void linked_list_preappend(linked_node_t** node, void* data);

@@ -1,7 +1,7 @@
 #include "inlinelinkedlist.h"
 
 
-#define NEXT(p, offset) INLINE_LIST_NEXT(p, offset)
+#define NEXT(p, offset) (((inline_node_t*)((p) + offset))->next)
 
 void inline_list_preappend(void** node, void* insert_node, size_t struct_offset)
 {
@@ -13,8 +13,9 @@ void inline_list_append(void** prenode, void* insert_node, size_t struct_offset)
 {
     if (*prenode != NULL) {
         NEXT(insert_node, struct_offset) = NEXT(*prenode, struct_offset);
-        NEXT(*prenode, struct_offset)->next = insert_node;
+        NEXT(*prenode, struct_offset) = insert_node;
     } else {
+        NEXT(insert_node, struct_offset) = NULL;
         *prenode = insert_node;
     }
 }
