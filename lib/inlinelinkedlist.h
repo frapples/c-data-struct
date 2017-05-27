@@ -12,22 +12,20 @@
   2. 使用节点指针的指针代表链表，当指针为NULL时为空链表
  */
 
-typedef struct inline_node_s inline_node_t;
-struct inline_node_s{
-    struct inline_node_s* next;
-};
+typedef struct{
+    void* next;
+}inline_node_t;
 
 #define DECLARE_INLINE_LIST    inline_node_t __inline_node
-#define FROM_INLINE_LIST(type, p) ((type*)((p) - offsetof(type, __inline_node)))
-#define TO_INLINE_LIST(p) (&((p)->__inline_node))
-#define INLINE_LIST_NEXT(type, p) (FROM_INLINE_LIST(type, TO_INLINE_LIST(p)->next))
+#define INLINE_LIST_OFFSET(type) offsetof(type, __inline_node)
+#define INLINE_LIST_NEXT(p, type) ((type*)(((inline_node_t*)((p) + (INLINE_LIST_OFFSET(type))))->next))
 
-void inline_list_preappend(inline_node_t** node, inline_node_t* insert_node);
-void inline_list_append(inline_node_t** prenode, inline_node_t* insert_node);
+void inline_list_preappend(void** node, void* insert_node, size_t struct_offset);
+void inline_list_append(void** prenode, void* insert_node, size_t struct_offset);
 
-void inline_list_remove(inline_node_t** node);
+void inline_list_remove(void** node,  size_t struct_offset);
 
-bool inline_list_is_in(inline_node_t* list, inline_node_t* node);
+bool inline_list_is_in(void* list, void* node, size_t struct_offset);
 
 
 #endif /* __INLINELINKEDLIST_H__RAND68698913203068463 */
