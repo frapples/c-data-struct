@@ -9,6 +9,7 @@
 #include "voidp.h"
 #include "ccstr.h"
 
+void test_linked_list(void **state);
 
 void test_voidp(void **state)
 {
@@ -43,13 +44,15 @@ void test_ccstr(void **state)
 
 }
 
+
 int main(void)
 {
     srand(time(NULL));
 
     const UnitTest tests[] = {
         unit_test(test_voidp),
-        unit_test(test_ccstr)
+        unit_test(test_ccstr),
+        unit_test(test_linked_list)
     };
     return run_tests(tests);
 }
