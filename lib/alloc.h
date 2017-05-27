@@ -5,12 +5,8 @@
 
 typedef void* (*MallocFunc)(size_t);
 typedef void (*FreeFunc)(void*);
+typedef void* (*ReallocFunc)(void*, size_t);
 
-extern MallocFunc malloc_function;
-extern FreeFunc free_function;
-
-#define NEW(type, size) MallocFunc(sizeof(type) * size)
-
-#define FREE(p) free_function(p)
+#define FDS_NEW(type, size) fds_malloc(sizeof(type) * size)
 
 #endif /* __ALLOC_H__RAND217103883253425442 */
