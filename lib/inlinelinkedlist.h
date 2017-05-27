@@ -18,8 +18,9 @@ struct inline_node_s{
 };
 
 #define DECLARE_INLINE_LIST    inline_node_t __inline_node
-#define FROM_INLINE_LIST(type, p) ((type*)(p - offsetof(type, __inline_list)))
-#define TO_INLINE_LIST(p) (&(p->__inline_list))
+#define FROM_INLINE_LIST(type, p) ((type*)((p) - offsetof(type, __inline_node)))
+#define TO_INLINE_LIST(p) (&((p)->__inline_node))
+#define INLINE_LIST_NEXT(type, p) (FROM_INLINE_LIST(type, TO_INLINE_LIST(p)->next))
 
 void inline_list_preappend(inline_node_t** node, inline_node_t* insert_node);
 void inline_list_append(inline_node_t** prenode, inline_node_t* insert_node);
