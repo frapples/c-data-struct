@@ -36,5 +36,9 @@
 *.dSYM/
 build/
 
+GPATH
+GRTAGS
+GTAGS
+
     Status API Training Shop Blog About 
 
