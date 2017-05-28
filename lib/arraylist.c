@@ -5,6 +5,8 @@
 
 #include "alloc.h"
 
+static void arraylist_resize_smaller(arraylist_t* list, size_t size);
+
 arraylist_t* arraylist_create(size_t item_size)
 {
     arraylist_t* list = FDS_NEW(arraylist_t, 1);
@@ -68,11 +70,25 @@ void arraylist_remove(arraylist_t* list, size_t start, size_t end)
         list->len -= end - start;
     }
 
+    size_t data_size = list->len * list->item_size;
+    if (data_size <= list->size / 2) {
+        arraylist_resize_smaller(list, data_size);
+    }
 
 #ifndef NDEBUG
     list->debug_size2 = list->size;
     list->debug_len2 = list->len;
 #endif
+}
+
+static void arraylist_resize_smaller(arraylist_t* list, size_t size)
+{
+    assert(size < list->size);
+
+    void* smaller = fds_malloc(size);
+    memcpy(smaller, list->data, size);
+    list->data = smaller;
+    list->size = size;
 }
 
 void arraylist_destory(arraylist_t* list)
