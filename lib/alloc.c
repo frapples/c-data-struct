@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static MallocFunc malloc_function = malloc;
 static FreeFunc free_function = free;
@@ -13,7 +14,13 @@ static int count = 0;
 void* fds_malloc(size_t size)
 {
     count++;
-    return malloc_function(size);
+    void* p = malloc_function(size);
+
+    #ifndef NDBUG
+    memset(p, 0x56, size);
+#endif // NDBUG
+
+    return p;
 }
 
 void* fds_realloc(void* p, size_t size)
