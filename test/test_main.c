@@ -10,6 +10,7 @@
 #include "ccstr.h"
 
 void test_linked_list(void **state);
+void test_array_list(void **state);
 
 void test_voidp(void **state)
 {
@@ -52,7 +53,8 @@ int main(void)
     const UnitTest tests[] = {
         unit_test(test_voidp),
         unit_test(test_ccstr),
-        unit_test(test_linked_list)
+        unit_test(test_linked_list),
+        unit_test(test_array_list)
     };
     return run_tests(tests);
 }

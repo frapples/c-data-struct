@@ -9,6 +9,7 @@
 
 #include "voidp.h"
 #include "linkedlist.h"
+#include "./utils.h"
 
 void test_linked_list(void **state)
 {
@@ -19,9 +20,8 @@ void test_linked_list(void **state)
         assert_true(list == NULL);
 
         int size = 100;
-        int a[100];
+        int* a = rand_array(size);
         for (int i = 0; i < size; i++) {
-            a[i] = rand();
             linked_list_preappend(&list, long2voidp(a[i]));
         }
 
