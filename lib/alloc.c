@@ -36,13 +36,18 @@ void fds_free(void* p)
     }
 }
 
-void fds_set_allocator(MallocFunc alloc_func, FreeFunc free_func)
+void fds_set_allocator(MallocFunc alloc_func, FreeFunc free_func, ReallocFunc realloc_func)
 {
     if (count != 0) {
         fprintf(stderr, "内存未释放干净，拒绝修改allocator\n");
     }
 
+    if (alloc_func == NULL || free_func == NULL || realloc_func == NULL) {
+        fprintf(stderr, "传入的分配器不可为NULL\n");
+    }
+
     malloc_function = alloc_func;
     free_function = free_func;
+    realloc_function = realloc_func;
 }
 
