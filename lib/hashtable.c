@@ -12,8 +12,8 @@ hashtable_t* hashtable_create(HashFunc hash_function, CmpFunc cmp_function)
     table->len = 0;
     table->hash_function = hash_function;
     table->cmp_function = cmp_function;
-    table->buckets = FDS_NEW(hashtable_bucket_t*, INITIALIZE_BUCKET_SIZE);
-    for (size_t i = 0; i < table->len; i++) {
+    table->buckets = FDS_NEW(hashtable_bucket_t*, table->size);
+    for (size_t i = 0; i < table->size; i++) {
         table->buckets[i] = NULL;
     }
     return table;
@@ -27,10 +27,13 @@ hashtable_t* hashtable_create_strkey()
 void hashtable_put(hashtable_t* table, void* key, void* value)
 {
     size_t hash = table->hash_function(key, table->size);
+
+    assert(hash < table->size);
+
     hashtable_bucket_t** head = table->buckets + hash;
 
     for (hashtable_bucket_t* it = *head; it != NULL; it = it->next) {
-        if (table->cmp_function(key, it->key)) {
+        if (table->cmp_function(key, it->key) == 0) {
             it->value = value;
             return;
         }
@@ -50,8 +53,10 @@ bool hashtable_exists(hashtable_t* table, void* key)
 {
     size_t hash = table->hash_function(key, table->size);
 
+    assert(hash < table->size);
+
     for (hashtable_bucket_t* it = table->buckets[hash]; it != NULL; it = it->next) {
-        if (table->cmp_function(key, it->key)) {
+        if (table->cmp_function(key, it->key) == 0) {
             return true;
         }
     }
@@ -62,8 +67,10 @@ void* hashtable_get(hashtable_t* table, void* key, void* default_value)
 {
     size_t hash = table->hash_function(key, table->size);
 
+    assert(hash < table->size);
+
     for (hashtable_bucket_t* it = table->buckets[hash]; it != NULL; it = it->next) {
-        if (table->cmp_function(key, it->key)) {
+        if (table->cmp_function(key, it->key) == 0) {
             return it->value;
         }
     }
@@ -77,12 +84,22 @@ size_t hashtable_len(hashtable_t* table)
 
 void hashtable_each(hashtable_t* table, HashtableEachCallback callback, void* callback_data)
 {
-    for (size_t i = 0; i < table->len; i++) {
+#ifndef NDEBUG
+    size_t len = 0;
+#endif // NDEBUG
+
+    for (size_t i = 0; i < table->size; i++) {
         hashtable_bucket_t* head = table->buckets[i];
         for (hashtable_bucket_t* it = head; it != NULL; it = it->next) {
             (*callback)(it->key, it->value, callback_data);
+
+#ifndef NDEBUG
+            len++;
+#endif // NDEBUG
         }
     }
+
+    assert(len == table->len);
 }
 
 size_t hashtable_str_hash(const void* str, size_t table_size)
