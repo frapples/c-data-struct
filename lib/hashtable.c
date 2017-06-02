@@ -5,8 +5,10 @@
 #include "alloc.h"
 
 #define INITIALIZE_BUCKET_SIZE 7
+#define LOAD_FACTOR 0.75
 
 static hashtable_bucket_t** hashtable_find(hashtable_t* table, void* key);
+static void hashtable_try_rehash(hashtable_t* table);
 
 hashtable_t* hashtable_create(HashFunc hash_function, CmpFunc cmp_function)
 {
@@ -46,6 +48,8 @@ void hashtable_put(hashtable_t* table, void* key, void* value)
         *head = node;
 
         table->len++;
+
+        hashtable_try_rehash(table);
     }
 }
 
@@ -110,6 +114,21 @@ void hashtable_each(hashtable_t* table, HashtableEachCallback callback, void* ca
     assert(len == table->len);
 }
 
+void hashtable_destory(hashtable_t* table)
+{
+    for (size_t i = 0; i < table->size; i++) {
+        hashtable_bucket_t* cur = table->buckets[i];
+        while (cur != NULL) {
+            hashtable_bucket_t* next = cur->next;
+            fds_free(cur);
+            cur = next;
+        }
+    }
+
+    fds_free(table->buckets);
+    fds_free(table);
+}
+
 size_t hashtable_str_hash(const void* str, size_t table_size)
 {
     const char* s = (const char*)str;
@@ -121,4 +140,37 @@ size_t hashtable_str_hash(const void* str, size_t table_size)
         s++;
     }
     return hash % table_size;
+}
+
+static void hashtable_try_rehash(hashtable_t* table)
+{
+    if (table->len < (size_t)(table->size * LOAD_FACTOR)) {
+        return;
+    }
+
+    size_t new_size = table->size * 2;
+    hashtable_bucket_t** buckets = FDS_NEW(hashtable_bucket_t*, new_size);
+    for (size_t i = 0; i < new_size; i++) {
+        buckets[i] = NULL;
+    }
+
+    for (size_t i = 0; i < table->size; i++) {
+        hashtable_bucket_t* cur = table->buckets[i];
+        while (cur != NULL) {
+            hashtable_bucket_t* next = cur->next;
+
+            size_t hash = table->hash_function(cur->key, new_size);
+
+            assert(hash < new_size);
+
+            cur->next = buckets[hash];
+            buckets[hash] = cur;
+
+            cur = next;
+        }
+    }
+
+    table->size = new_size;
+    fds_free(table->buckets);
+    table->buckets = buckets;
 }

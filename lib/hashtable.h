@@ -29,6 +29,7 @@ void hashtable_put(hashtable_t* table, void* key, void* value);
 bool hashtable_exists(hashtable_t* table, void* key);
 void* hashtable_get(hashtable_t* table, void* key, void* default_value);
 void hashtable_remove(hashtable_t* table, void* key);
+void hashtable_destory(hashtable_t* table);
 
 size_t hashtable_len(hashtable_t* table);
 

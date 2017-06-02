@@ -59,6 +59,12 @@ void test_hashtable(void **state)
     for (size_t i = 0; i < table->size; i++) {
         assert_true(table->buckets[i] == NULL);
     }
+
+    /* 测试 hashtable_destory */
+    for (int i = 0; i < size; i+= 2) {
+        hashtable_put(table, strs[i], strs[i + 1]);
+    }
+    hashtable_destory(table);
 }
 
 static void each_callback(void* key, void* value, void* data_)
