@@ -11,6 +11,7 @@
 
 void test_linked_list(void **state);
 void test_array_list(void **state);
+void test_hashtable(void **state);
 
 void test_voidp(void **state)
 {
@@ -54,7 +55,8 @@ int main(void)
         unit_test(test_voidp),
         unit_test(test_ccstr),
         unit_test(test_linked_list),
-        unit_test(test_array_list)
+        unit_test(test_array_list),
+        unit_test(test_hashtable)
     };
     return run_tests(tests);
 }
