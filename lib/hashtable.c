@@ -5,6 +5,9 @@
 #include "alloc.h"
 
 #define INITIALIZE_BUCKET_SIZE 7
+
+static hashtable_bucket_t* hashtable_find(hashtable_t* table, void* key);
+
 hashtable_t* hashtable_create(HashFunc hash_function, CmpFunc cmp_function)
 {
     hashtable_t* table = FDS_NEW(hashtable_t, 1);
@@ -26,44 +29,38 @@ hashtable_t* hashtable_create_strkey()
 
 void hashtable_put(hashtable_t* table, void* key, void* value)
 {
-    size_t hash = table->hash_function(key, table->size);
+    hashtable_bucket_t* exists_node = hashtable_find(table, key);
+    if (exists_node != NULL) {
+        exists_node->value = value;
+    } else {
+        size_t hash = table->hash_function(key, table->size);
 
-    assert(hash < table->size);
+        assert(hash < table->size);
 
-    hashtable_bucket_t** head = table->buckets + hash;
+        hashtable_bucket_t** head = table->buckets + hash;
+        hashtable_bucket_t* node = FDS_NEW(hashtable_bucket_t, 1);
+        node->key = key;
+        node->value = value;
 
-    for (hashtable_bucket_t* it = *head; it != NULL; it = it->next) {
-        if (table->cmp_function(key, it->key) == 0) {
-            it->value = value;
-            return;
-        }
+        node->next = *head;
+        *head = node;
+
+        table->len++;
     }
-
-    hashtable_bucket_t* node = FDS_NEW(hashtable_bucket_t, 1);
-    node->key = key;
-    node->value = value;
-
-    node->next = *head;
-    *head = node;
-
-    table->len++;
 }
 
 bool hashtable_exists(hashtable_t* table, void* key)
 {
-    size_t hash = table->hash_function(key, table->size);
-
-    assert(hash < table->size);
-
-    for (hashtable_bucket_t* it = table->buckets[hash]; it != NULL; it = it->next) {
-        if (table->cmp_function(key, it->key) == 0) {
-            return true;
-        }
-    }
-    return false;
+    return hashtable_find(table, key) != NULL;
 }
 
 void* hashtable_get(hashtable_t* table, void* key, void* default_value)
+{
+    hashtable_bucket_t* node = hashtable_find(table, key);
+    return node == NULL ? default_value : node->value;
+}
+
+static hashtable_bucket_t* hashtable_find(hashtable_t* table, void* key)
 {
     size_t hash = table->hash_function(key, table->size);
 
@@ -71,10 +68,10 @@ void* hashtable_get(hashtable_t* table, void* key, void* default_value)
 
     for (hashtable_bucket_t* it = table->buckets[hash]; it != NULL; it = it->next) {
         if (table->cmp_function(key, it->key) == 0) {
-            return it->value;
+            return it;
         }
     }
-    return default_value;
+    return NULL;
 }
 
 size_t hashtable_len(hashtable_t* table)
