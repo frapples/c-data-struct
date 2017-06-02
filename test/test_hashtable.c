@@ -48,6 +48,17 @@ void test_hashtable(void **state)
     }
 
     hashtable_each(table, each_callback, &(struct each_callback_data_s){strs, size});
+
+
+    /* 删除数据 */
+    for (int i = 0; i < size; i+= 2) {
+        hashtable_remove(table, strs[i]);
+    }
+    assert_int_equal(hashtable_len(table), 0);
+
+    for (size_t i = 0; i < table->size; i++) {
+        assert_true(table->buckets[i] == NULL);
+    }
 }
 
 static void each_callback(void* key, void* value, void* data_)
