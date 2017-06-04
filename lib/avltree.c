@@ -159,9 +159,9 @@ static void rotate(avltree_node_t** p_root)
         assert(abs(son_diff) <= 1);
 
         if (son_diff > 0) {
-            single_rotate_with_right(p_root); // 右-左
+            double_rotate_with_right(p_root); // 右-左
         } else if (son_diff < 0) {
-            double_rotate_with_right(p_root); // 右-右
+            single_rotate_with_right(p_root); // 右-右
         } else {
             assert(false);
         }
@@ -173,18 +173,38 @@ static void rotate(avltree_node_t** p_root)
 /* 要注意能否处理退化的avl树 */
 static void single_rotate_with_left(avltree_node_t** node)
 {
+    avltree_node_t* old_root = *node;
     avltree_node_t* new_root = (*node)->left;
     (*node)->left = new_root->right;
     new_root->right = *node;
     *node = new_root;
+
+    /* 重要：顺序不能反 */
+    old_root->height = max(height(old_root->left), height(old_root->right)) + 1;
+    new_root->height = max(height(new_root->left), height(new_root->right)) + 1;
+
+#ifndef NDEBUG
+    old_root->debug_height = old_root->height;
+    new_root->debug_height = new_root->height;
+#endif // NDEBUG
 }
 
 static void single_rotate_with_right(avltree_node_t** node)
 {
+    avltree_node_t* old_root = *node;
     avltree_node_t* new_root = (*node)->right;
     (*node)->right = new_root->left;
     new_root->left = *node;
     *node = new_root;
+
+    /* 重要：顺序不能反 */
+    old_root->height = max(height(old_root->left), height(old_root->right)) + 1;
+    new_root->height = max(height(new_root->left), height(new_root->right)) + 1;
+
+#ifndef NDEBUG
+    old_root->debug_height = old_root->height;
+    new_root->debug_height = new_root->height;
+#endif // NDEBUG
 }
 
 static void double_rotate_with_left(avltree_node_t** node)
