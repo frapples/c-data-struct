@@ -11,6 +11,9 @@ typedef struct avltree_node_s {
     int height;
     void* key;
     void* value;
+#ifndef NDEBUG
+    int debug_height;
+#endif // NDEBUG
 }avltree_node_t;
 
 typedef struct {

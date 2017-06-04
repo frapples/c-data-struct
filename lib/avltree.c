@@ -70,10 +70,18 @@ static void insert(avltree_node_t** p_root, avltree_node_t* key, avltree_node_t*
         root->key = key;
         root->value = value;
         *p_root = root;
+
+#ifndef NDEBUG
+        root->debug_height = root->height;
+#endif // NDEBUG
+
         return;
     }
 
     avltree_node_t* root = *p_root;
+
+    assert(root->height == root->debug_height);
+
     int cmp = cmp_function(key, root->key);
     if (cmp < 0) {
         insert(&root->left, key, value, cmp_function);
@@ -85,6 +93,10 @@ static void insert(avltree_node_t** p_root, avltree_node_t* key, avltree_node_t*
 
     root->height = max(height(root->left), height(root->right)) + 1;
 
+#ifndef NDEBUG
+    root->debug_height = root->height;
+#endif // NDEBUG
+
     if (abs(height(root->left) - height(root->right)) > 1) {
         rotate(p_root);
     }
@@ -95,6 +107,8 @@ static avltree_node_t* find(avltree_node_t* root, avltree_node_t* key, CmpFunc c
     if (root == NULL) {
         return root;
     }
+
+    assert(root->height == root->debug_height);
 
     int cmp = cmp_function(key, root->key);
     if (cmp < 0) {
@@ -109,6 +123,9 @@ static avltree_node_t* find(avltree_node_t* root, avltree_node_t* key, CmpFunc c
 static void destory(avltree_node_t* root)
 {
     if (root != NULL) {
+
+        assert(root->height == root->debug_height);
+
         destory(root->left);
         destory(root->right);
         fds_free(root);
