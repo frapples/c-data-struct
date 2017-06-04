@@ -3,8 +3,8 @@
 
 #include<stdbool.h>
 /* 支持使用void * 储存Long和bool类型的数据。 */
-static long   voidp2long   (void*  voidp);
-static bool   voidp2bool   (void*  voidp);
+static long   voidp2long   (const void*  voidp);
+static bool   voidp2bool   (const void*  voidp);
 static void*  long2voidp   (long);
 static void*  bool2voidp   (bool);
 
@@ -14,17 +14,17 @@ union __cast {
     bool vbool;
 };
 
-static inline long voidp2long(void*  voidp)
+static inline long voidp2long(const void*  voidp)
 {
     union __cast cast;
-    cast.voidp = voidp;
+    cast.voidp = (void*)voidp;
     return cast.vlong;
 }
 
-static inline bool voidp2bool(void*  voidp)
+static inline bool voidp2bool(const void*  voidp)
 {
     union __cast cast;
-    cast.voidp = voidp;
+    cast.voidp = (void*)voidp;
     return cast.vbool;
 }
 
