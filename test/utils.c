@@ -8,8 +8,13 @@ int* rand_array(int size)
 {
     int* a = malloc(sizeof(int) * size);
 
-    for (int i = 0; i < size; i++) {
+    int i = 0;
+    while (i < size) {
         a[i] = rand();
+
+        if (!int_is_in(a, i, a[i])) {
+            i++;
+        }
     }
     return a;
 
@@ -49,4 +54,35 @@ bool str_is_in(char** strs, int size, const char* str)
         }
     }
     return false;
+}
+
+bool int_is_in(int* arr, int size, int find)
+{
+    for (int i = 0; i < size; i++) {
+        if (arr[i] == find) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int* range(int start, int end, int step)
+{
+    int* arr;
+    if (step > 0) {
+        arr = malloc(sizeof(int) * ((end - start) / step));
+        int* p = arr;
+        for (int i = start; i < end; i += step) {
+            *(p++) = i;
+        }
+    } else if (step < 0) {
+        arr = malloc(sizeof(int) * ((start - end) / -step));
+        int* p = arr;
+        for (int i = start; i > end; i += step) {
+            *(p++) = i;
+        }
+    } else {
+        arr = NULL;
+    }
+    return arr;
 }
