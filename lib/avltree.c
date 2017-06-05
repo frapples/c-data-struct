@@ -9,7 +9,7 @@ static void insert(avltree_node_t** root, avltree_node_t* key, avltree_node_t* v
 static avltree_node_t* find(avltree_node_t* root, avltree_node_t* key, CmpFunc cmp_function);
 static void destory(avltree_node_t* root);
 
-static void rotate(avltree_node_t** node);
+static void rotate(avltree_node_t** p_root, bool debug__is_remove);
 static void single_rotate_with_left(avltree_node_t** node);
 static void single_rotate_with_right(avltree_node_t** node);
 static void double_rotate_with_left(avltree_node_t** node);
@@ -98,7 +98,7 @@ static void insert(avltree_node_t** p_root, avltree_node_t* key, avltree_node_t*
 #endif // NDEBUG
 
     if (abs(height(root->left) - height(root->right)) > 1) {
-        rotate(p_root);
+        rotate(p_root, false);
     }
 }
 
@@ -133,7 +133,7 @@ static void destory(avltree_node_t* root)
 }
 
 
-static void rotate(avltree_node_t** p_root)
+static void rotate(avltree_node_t** p_root, bool debug__is_remove)
 {
     avltree_node_t* root = *p_root;
     int diff = height(root->left) - height(root->right);
@@ -141,6 +141,7 @@ static void rotate(avltree_node_t** p_root)
     assert(abs(diff <= 2));
 
     /* 要注意退化的avl树 */
+    /* 有趣的是根据高度来判断旋转情况，对移除节点也有效 */
     if (diff == 2) {
         int son_diff = height(root->left->left) - height(root->left->right);
 
@@ -151,7 +152,11 @@ static void rotate(avltree_node_t** p_root)
         } else if (son_diff < 0) {
             double_rotate_with_left(p_root); // 左-右
         } else {
-            assert(false);
+            /* 删除节点带来的旋转，可能会出现这种情况 */
+
+            assert(debug__is_remove);
+
+            single_rotate_with_left(p_root);
         }
     } else if (diff == -2) {
         int son_diff = height(root->right->left) - height(root->right->right);
@@ -163,7 +168,10 @@ static void rotate(avltree_node_t** p_root)
         } else if (son_diff < 0) {
             single_rotate_with_right(p_root); // 右-右
         } else {
-            assert(false);
+
+            assert(debug__is_remove);
+
+            single_rotate_with_right(p_root);
         }
     } else {
         assert(false);
