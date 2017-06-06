@@ -17,6 +17,7 @@ static void double_rotate_with_right(avltree_node_t** node);
 
 /* 非常好的考虑NULL的情况 */
 static inline int height(avltree_node_t* node);
+static inline void update_height(avltree_node_t* node);
 static inline int max(int a, int b);
 
 avltree_t* avltree_create(CmpFunc cmp_function)
@@ -50,8 +51,51 @@ void* avltree_get(avltree_t* tree, void* key, void* default_value)
 
 void avltree_remove(avltree_t* tree, void* key)
 {
-    /* TODO */
-    assert(false);
+    if (tree->root != NULL) {
+        avltree_node_t*** trace = FDS_NEW(avltree_node_t**, height(tree->root) + 1);
+        int size = 0;
+
+        avltree_node_t** p_node = &tree->root;
+        int cmp = 1;
+        while ((*p_node) != NULL && cmp != 0) {
+            cmp = tree->cmp_function(key, (*p_node)->key);
+            trace[size++] = p_node;
+            if (cmp < 0) {
+                *p_node = (*p_node)->left;
+            } else if (cmp > 0) {
+                *p_node = (*p_node)->right;
+            }
+        }
+
+        /* size - 1 是否存在？ */
+        avltree_node_t* deleted_node = *trace[size - 1];
+        if (deleted_node->left != NULL && deleted_node->right != NULL) {
+            avltree_node_t** p_node = &deleted_node->right;
+            while (*p_node != NULL) {
+                trace[size++] = p_node;
+                *p_node = (*p_node)->left;
+            }
+            p_node = trace[size - 1];
+            deleted_node->key = (*p_node)->key;
+            deleted_node->value = (*p_node)->value;
+        }
+
+        p_node = trace[size - 1];
+        if ((*p_node)->left == NULL) {
+            *p_node = (*p_node)->right;
+        } else if ((*p_node)->right == NULL) {
+            *p_node = (*p_node)->right;
+        } else {
+            assert(false);
+        }
+
+        for (int i = size - 1; i >= 0; i--) {
+            update_height(*trace[i]);
+            rotate(trace[i], true);
+        }
+
+        fds_free(trace);
+    }
 }
 
 void avltree_destory(avltree_t* tree)
@@ -91,7 +135,7 @@ static void insert(avltree_node_t** p_root, avltree_node_t* key, avltree_node_t*
         root->value = value;
     }
 
-    root->height = max(height(root->left), height(root->right)) + 1;
+    update_height(root);
 
 #ifndef NDEBUG
     root->debug_height = root->height;
@@ -188,8 +232,8 @@ static void single_rotate_with_left(avltree_node_t** node)
     *node = new_root;
 
     /* 重要：顺序不能反 */
-    old_root->height = max(height(old_root->left), height(old_root->right)) + 1;
-    new_root->height = max(height(new_root->left), height(new_root->right)) + 1;
+    update_height(old_root);
+    update_height(new_root);
 
 #ifndef NDEBUG
     old_root->debug_height = old_root->height;
@@ -206,8 +250,8 @@ static void single_rotate_with_right(avltree_node_t** node)
     *node = new_root;
 
     /* 重要：顺序不能反 */
-    old_root->height = max(height(old_root->left), height(old_root->right)) + 1;
-    new_root->height = max(height(new_root->left), height(new_root->right)) + 1;
+    update_height(old_root);
+    update_height(new_root);
 
 #ifndef NDEBUG
     old_root->debug_height = old_root->height;
@@ -235,4 +279,9 @@ static inline int max(int a, int b)
 static inline int height(avltree_node_t* node)
 {
     return node == NULL ? -1 : node->height;
+}
+
+static inline void update_height(avltree_node_t* node)
+{
+    node->height = max(height(node->left), height(node->right)) + 1;
 }
