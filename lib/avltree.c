@@ -95,10 +95,6 @@ static void insert(avltree_node_t** p_root, avltree_node_t* key, avltree_node_t*
 
     update_height(root);
 
-#ifndef NDEBUG
-    root->debug_height = root->height;
-#endif // NDEBUG
-
     if (abs(height(root->left) - height(root->right)) > 1) {
         rotate(p_root, false);
     }
@@ -134,7 +130,7 @@ static void remove(avltree_node_t** p_node, avltree_node_t* key, CmpFunc cmp_fun
 
     update_height(*p_node);
     if (abs(height((*p_node)->left) - height((*p_node)->right)) > 1) {
-        rotate(p_node, false);
+        rotate(p_node, true);
     }
 }
 
@@ -226,11 +222,6 @@ static void single_rotate_with_left(avltree_node_t** node)
     /* 重要：顺序不能反 */
     update_height(old_root);
     update_height(new_root);
-
-#ifndef NDEBUG
-    old_root->debug_height = old_root->height;
-    new_root->debug_height = new_root->height;
-#endif // NDEBUG
 }
 
 static void single_rotate_with_right(avltree_node_t** node)
@@ -244,11 +235,6 @@ static void single_rotate_with_right(avltree_node_t** node)
     /* 重要：顺序不能反 */
     update_height(old_root);
     update_height(new_root);
-
-#ifndef NDEBUG
-    old_root->debug_height = old_root->height;
-    new_root->debug_height = new_root->height;
-#endif // NDEBUG
 }
 
 static void double_rotate_with_left(avltree_node_t** node)
@@ -283,4 +269,8 @@ static inline int height(avltree_node_t* node)
 static inline void update_height(avltree_node_t* node)
 {
     node->height = max(height(node->left), height(node->right)) + 1;
+
+#ifndef NDEBUG
+    node->debug_height = node->height;
+#endif // NDEBUG
 }
