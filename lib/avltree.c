@@ -6,7 +6,9 @@
 #include "alloc.h"
 
 static void insert(avltree_node_t** root, avltree_node_t* key, avltree_node_t* value, CmpFunc cmp_function);
+static void remove(avltree_node_t** root, avltree_node_t* key, CmpFunc cmp_function);
 static avltree_node_t* find(avltree_node_t* root, avltree_node_t* key, CmpFunc cmp_function);
+static avltree_node_t* min_node(avltree_node_t* node);
 static void destory(avltree_node_t* root);
 
 static void rotate(avltree_node_t** p_root, bool debug__is_remove);
@@ -51,51 +53,7 @@ void* avltree_get(avltree_t* tree, void* key, void* default_value)
 
 void avltree_remove(avltree_t* tree, void* key)
 {
-    if (tree->root != NULL) {
-        avltree_node_t*** trace = FDS_NEW(avltree_node_t**, height(tree->root) + 1);
-        int size = 0;
-
-        avltree_node_t** p_node = &tree->root;
-        int cmp = 1;
-        while ((*p_node) != NULL && cmp != 0) {
-            cmp = tree->cmp_function(key, (*p_node)->key);
-            trace[size++] = p_node;
-            if (cmp < 0) {
-                *p_node = (*p_node)->left;
-            } else if (cmp > 0) {
-                *p_node = (*p_node)->right;
-            }
-        }
-
-        /* size - 1 是否存在？ */
-        avltree_node_t* deleted_node = *trace[size - 1];
-        if (deleted_node->left != NULL && deleted_node->right != NULL) {
-            avltree_node_t** p_node = &deleted_node->right;
-            while (*p_node != NULL) {
-                trace[size++] = p_node;
-                *p_node = (*p_node)->left;
-            }
-            p_node = trace[size - 1];
-            deleted_node->key = (*p_node)->key;
-            deleted_node->value = (*p_node)->value;
-        }
-
-        p_node = trace[size - 1];
-        if ((*p_node)->left == NULL) {
-            *p_node = (*p_node)->right;
-        } else if ((*p_node)->right == NULL) {
-            *p_node = (*p_node)->right;
-        } else {
-            assert(false);
-        }
-
-        for (int i = size - 1; i >= 0; i--) {
-            update_height(*trace[i]);
-            rotate(trace[i], true);
-        }
-
-        fds_free(trace);
-    }
+    remove(&tree->root, key, tree->cmp_function);
 }
 
 void avltree_destory(avltree_t* tree)
@@ -143,6 +101,40 @@ static void insert(avltree_node_t** p_root, avltree_node_t* key, avltree_node_t*
 
     if (abs(height(root->left) - height(root->right)) > 1) {
         rotate(p_root, false);
+    }
+}
+
+static void remove(avltree_node_t** p_node, avltree_node_t* key, CmpFunc cmp_function)
+{
+    if (*p_node == NULL) {
+        return;
+    }
+
+    int cmp = cmp_function(key, (*p_node)->key);
+    if (cmp < 0) {
+        remove(&(*p_node)->left, key, cmp_function);
+    } else if (cmp > 0) {
+        remove(&(*p_node)->right, key, cmp_function);
+    } else if ((*p_node)->left == NULL) {
+            avltree_node_t* node = *p_node;
+            *p_node = (*p_node)->right;
+            fds_free(node);
+            return;
+    } else if ((*p_node)->right == NULL) {
+            avltree_node_t* node = *p_node;
+            *p_node = (*p_node)->left;
+            fds_free(node);
+            return;
+    } else {
+        avltree_node_t* min = min_node((*p_node)->right);
+        (*p_node)->key = min->key;
+        (*p_node)->value = min->key;
+        remove(&(*p_node)->right, min->key, cmp_function);
+    }
+
+    update_height(*p_node);
+    if (abs(height((*p_node)->left) - height((*p_node)->right)) > 1) {
+        rotate(p_node, false);
     }
 }
 
@@ -269,6 +261,13 @@ static void double_rotate_with_right(avltree_node_t** node)
 {
     single_rotate_with_left(&(*node)->right);
     single_rotate_with_right(node);
+}
+
+static avltree_node_t* min_node(avltree_node_t* node)
+{
+    assert(node != NULL);
+
+    return node->left == NULL ? node : min_node(node->left);
 }
 
 static inline int max(int a, int b)
