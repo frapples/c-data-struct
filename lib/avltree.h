@@ -2,8 +2,7 @@
 #define __AVLTREE_H__RAND439874753491296604
 
 #include <stdbool.h>
-
-typedef int (*CmpFunc)(const void *, const void*);
+#include "utils.h"
 
 typedef struct avltree_node_s {
     struct avltree_node_s* left;
