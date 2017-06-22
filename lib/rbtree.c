@@ -7,10 +7,11 @@
 #define COLOR_RED 1
 
 static rbtree_node_t* find(rbtree_node_t* node, void* key, CmpFunc cmp_function);
-static void insert(rbtree_node_t** p_parent, rbtree_node_t** p_node, void* key, void* value, CmpFunc cmp_function);
+static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_function);
 static rbtree_node_t* create_node(void* key, void* value, char color);
 static void rotate(rbtree_node_t** p_node);
 inline static char node_color(rbtree_node_t* node);
+inline static rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function);
 
 rbtree_t* rbtree_create(CmpFunc cmp_function)
 {
@@ -27,19 +28,8 @@ rbtree_t* rbtree_create_strkey()
 
 void rbtree_put(rbtree_t* tree, void* key, void* value)
 {
-    if (tree->root == NULL) {
-        tree->root = create_node(key, value, COLOR_BLACK);
-    } else {
-        int cmp = tree->cmp_function(key, tree->root);
-        if (cmp < 0) {
-            insert(&(tree->root), &tree->root->left, key, value, tree->cmp_function);
-        } else if (cmp > 0) {
-            insert(&(tree->root), &tree->root->right, key, value, tree->cmp_function);
-        } else {
-            // 不插入已经存在的key
-        }
-        tree->root->color = COLOR_BLACK;
-    }
+    insert(&(tree->root), key, value, tree->cmp_function);
+    tree->root->color = COLOR_BLACK;
 }
 
 bool rbtree_exists(rbtree_t* tree, void* key)
@@ -75,37 +65,58 @@ void rbtree_destory(rbtree_t* tree)
     }
 }
 
-static void insert(rbtree_node_t** p_parent, rbtree_node_t** p_node, void* key, void* value, CmpFunc cmp_function)
+static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_function)
 {
-    assert(*p_parent != NULL);
-    assert((*p_parent)->left == *p_node || (*p_parent)->right == *p_node);
+    rbtree_node_t** p_grandparent = NULL;
+    rbtree_node_t** p_parent = NULL;
+    rbtree_node_t** p_node = p_root;
 
-    if (*p_node == NULL) {
-        *p_node = create_node(key, value, COLOR_RED);
-        rotate(p_parent);
-        return;
+    while (*p_node != NULL) {
+        if (node_color((*p_node)->left) == COLOR_RED && node_color((*p_node)->right) == COLOR_RED) {
+
+            assert((*p_node)->left != NULL && (*p_node)->right != NULL);
+
+            (*p_node)->color = COLOR_RED;
+            (*p_node)->left->color = COLOR_BLACK;
+            (*p_node)->right->color = COLOR_BLACK;
+
+            if (p_grandparent != NULL) {
+                rotate(p_grandparent);
+            } else {
+                assert(p_parent == NULL);
+            }
+        }
+
+        p_grandparent = p_parent;
+        p_parent = p_node;
+        p_node = next(*p_node, key, cmp_function);
+        if (p_node == NULL) {
+            return;
+        }
     }
 
-    if (node_color((*p_node)->left) == COLOR_RED && node_color((*p_node)->right) == COLOR_RED) {
-
-        assert((*p_node)->left != NULL && (*p_node)->right != NULL);
-
-        (*p_node)->color = COLOR_RED;
-        (*p_node)->left->color = COLOR_BLACK;
-        (*p_node)->right->color = COLOR_BLACK;
-
+    *p_node = create_node(key, value, COLOR_RED);
+    if (p_grandparent != NULL) {
         rotate(p_parent);
-    }
-
-    int cmp = cmp_function(key, (*p_node)->key);
-    if (cmp < 0) {
-        insert(p_node, &(*p_node)->left, key, value, cmp_function);
-    } else if (cmp > 0) {
-        insert(p_node, &(*p_node)->right, key, value, cmp_function);
     } else {
-        return;
+        assert(p_parent == NULL);
     }
 }
+
+inline rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function)
+{
+    assert(node != NULL);
+
+    int cmp = cmp_function(key, node->key);
+    if (cmp < 0) {
+        return &node->left;
+    } else if (cmp > 0) {
+        return &node->right;
+    } else {
+        return NULL;
+    }
+}
+
 
 static rbtree_node_t* create_node(void* key, void* value, char color)
 {
@@ -120,12 +131,14 @@ static rbtree_node_t* create_node(void* key, void* value, char color)
 
 static void rotate(rbtree_node_t** p_node)
 {
-    if (node_color(*p_node)) {
+    if (node_color(*p_node) == COLOR_RED) {
         assert(false && "Not implementation");
     }
 }
 
 inline static char node_color(rbtree_node_t* node)
 {
+    assert(node->color == COLOR_BLACK || node->color == COLOR_RED);
+
     return node == NULL ? COLOR_BLACK : node->color;
 }
