@@ -83,7 +83,7 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
             if (p_grandparent != NULL) {
                 rotate(p_grandparent);
             } else {
-                assert(p_parent == NULL);
+                assert(p_parent == NULL || p_parent == p_root);
             }
         }
 
@@ -97,9 +97,9 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
 
     *p_node = create_node(key, value, COLOR_RED);
     if (p_grandparent != NULL) {
-        rotate(p_parent);
+        rotate(p_grandparent);
     } else {
-        assert(p_parent == NULL);
+        assert(p_parent == NULL || p_parent == p_root);
     }
 }
 
