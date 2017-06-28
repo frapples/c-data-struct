@@ -159,15 +159,17 @@ static void double_roate_with_right(rbtree_node_t** p_root);
 static void rotate(rbtree_node_t** p_node)
 {
     if (node_color((*p_node)->left) == COLOR_RED) {
-        if (node_color((*p_node)->left->left) == COLOR_RED) { // LL型单旋转
+        rbtree_node_t* son = (*p_node)->left;
+        if (node_color(son->left) == COLOR_RED) { // LL型单旋转
             single_rotate_with_left(p_node);
-        } else { // LR型双旋转
+        } else if (node_color(son->right) == COLOR_RED) { // LR型双旋转
             double_roate_with_left(p_node);
         }
     } else if (node_color((*p_node)->right) == COLOR_RED) {
-        if (node_color((*p_node)->right->left) == COLOR_RED) { // RL型双旋转
+        rbtree_node_t* son = (*p_node)->right;
+        if (node_color(son->left) == COLOR_RED) { // RL型双旋转
             double_roate_with_right(p_node);
-        } else { // RR型单旋转
+        } else if (node_color(son->right) == COLOR_RED) { // RR型单旋转
             single_rotate_with_right(p_node);
         }
     }
