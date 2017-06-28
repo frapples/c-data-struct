@@ -2,6 +2,7 @@
 #define __RBTREE_H__RAND4212532133787459912177547191307587405
 
 #include <stdbool.h>
+#include <stdio.h>
 #include "utils.h"
 
 typedef struct rbtree_node_s {
@@ -27,5 +28,7 @@ void rbtree_remove(rbtree_t* tree, void* key);
 
 void rbtree_destory(rbtree_t* tree);
 
+/* 检查给定的rbtree是否满足红黑树的要求 */
+bool rbtree_check_struct(rbtree_t* tree);
 
 #endif /* __RBTREE_H__RAND4212532133787459912177547191307587405 */

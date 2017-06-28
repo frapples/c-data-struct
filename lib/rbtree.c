@@ -117,6 +117,28 @@ inline rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function
     }
 }
 
+static int check_struct(rbtree_node_t* node); /* 返回路径上黑色节点的数目。如果不满足红黑树路径节点数量的要求或红色节点的要求，返回负数 */
+bool rbtree_check_struct(rbtree_t* tree)
+{
+    return node_color(tree->root) == COLOR_BLACK && check_struct(tree->root) > 0;
+}
+
+static int check_struct(rbtree_node_t* node)
+{
+    if (node == NULL) {
+        return 0;
+    }
+
+    int left_black_count = check_struct(node->left);
+    int right_black_count = check_struct(node->right);
+    if ((left_black_count < 0 || right_black_count < 0 || left_black_count != right_black_count) ||
+        (node_color(node) == COLOR_RED &&
+         (node_color(node->left) == COLOR_RED || node_color(node->right) == COLOR_RED))) {
+        return -1;
+    } else {
+        return left_black_count + (node_color(node) == COLOR_BLACK ? 1 : 0);
+    }
+}
 
 static rbtree_node_t* create_node(void* key, void* value, char color)
 {
