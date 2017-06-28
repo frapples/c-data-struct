@@ -129,11 +129,60 @@ static rbtree_node_t* create_node(void* key, void* value, char color)
     return node;
 }
 
+static void single_rotate_with_left(rbtree_node_t** p_root);
+static void single_rotate_with_right(rbtree_node_t** p_root);
+static void double_roate_with_left(rbtree_node_t** p_root);
+static void double_roate_with_right(rbtree_node_t** p_root);
+
 static void rotate(rbtree_node_t** p_node)
 {
-    if (node_color(*p_node) == COLOR_RED) {
-        assert(false && "Not implementation");
+    if (node_color((*p_node)->left) == COLOR_RED) {
+        if (node_color((*p_node)->left->left) == COLOR_RED) { // LL型单旋转
+            single_rotate_with_left(p_node);
+        } else { // LR型双旋转
+            double_roate_with_left(p_node);
+        }
+    } else if (node_color((*p_node)->right) == COLOR_RED) {
+        if (node_color((*p_node)->right->left) == COLOR_RED) { // RL型双旋转
+            double_roate_with_right(p_node);
+        } else { // RR型单旋转
+            single_rotate_with_right(p_node);
+        }
     }
+}
+
+static void single_rotate_with_left(rbtree_node_t** p_root) {
+    rbtree_node_t* old_root = *p_root;
+    rbtree_node_t* new_root = old_root->left;
+    old_root->left = new_root->right;
+    new_root->right = old_root;
+    *p_root = new_root;
+
+    new_root->color = COLOR_BLACK;
+    old_root->color = COLOR_RED;
+}
+
+
+/* 旋转操作，要仔细推敲NULL指针情况，和旋转后的颜色 */
+static void single_rotate_with_right(rbtree_node_t** p_root) {
+    rbtree_node_t* old_root = *p_root;
+    rbtree_node_t* new_root = old_root->right;
+    old_root->right = new_root->left;
+    new_root->left = old_root;
+    *p_root = new_root;
+
+    new_root->color = COLOR_BLACK;
+    old_root->color = COLOR_RED;
+}
+
+static void double_roate_with_left(rbtree_node_t** p_root) {
+    single_rotate_with_right(&(*p_root)->left);
+    single_rotate_with_left(p_root);
+}
+
+static void double_roate_with_right(rbtree_node_t** p_root) {
+    single_rotate_with_left(&(*p_root)->right);
+    single_rotate_with_right(p_root);
 }
 
 inline static char node_color(rbtree_node_t* node)
