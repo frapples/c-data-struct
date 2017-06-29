@@ -18,7 +18,7 @@ void test_array_list(void** state)
 
     int count = 100;
     while (count-- > 0) {
-        arraylist_t* arr =  arraylist_create(sizeof(long));
+        arraylist_t* arr =  arraylist_create(sizeof(int));
         for (int i = 0; i < size; i++) {
             arraylist_append(arr, &a[i]);
         }
