@@ -65,6 +65,22 @@ void rbtree_destory(rbtree_t* tree)
     }
 }
 
+static rbtree_node_t* find(rbtree_node_t* node, void* key, CmpFunc cmp_function)
+{
+    if (node == NULL) {
+        return NULL;
+    } else {
+        int cmp = cmp_function(key, node->key);
+        if (cmp < 0) {
+            return find(node->left, key, cmp_function);
+        } else if (cmp > 0) {
+            return find(node->right, key, cmp_function);
+        } else {
+            return node;
+        }
+    }
+}
+
 static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_function)
 {
     rbtree_node_t** p_grandparent = NULL;
