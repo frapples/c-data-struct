@@ -48,20 +48,19 @@ void rbtree_remove(rbtree_t* tree, void* key)
     assert(false && "Not implementation");
 }
 
+static void destory(rbtree_node_t* node);
 void rbtree_destory(rbtree_t* tree)
 {
-    if (tree->root == NULL) {
-        fds_free(tree);
-    } else {
-        rbtree_node_t* node = tree->root;
+    destory(tree->root);
+    fds_free(tree);
+}
 
-        tree->root = node->left;
-        rbtree_destory(tree);
-
-        tree->root = node->right;
-        rbtree_destory(tree);
-
-        fds_free(tree->root);
+static void destory(rbtree_node_t* node)
+{
+    if (node != NULL) {
+        destory(node->left);
+        destory(node->right);
+        fds_free(node);
     }
 }
 
@@ -174,6 +173,8 @@ static void double_roate_with_right(rbtree_node_t** p_root);
 
 static void rotate(rbtree_node_t** p_node)
 {
+    assert(*p_node != NULL);
+
     if (node_color((*p_node)->left) == COLOR_RED) {
         rbtree_node_t* son = (*p_node)->left;
         if (node_color(son->left) == COLOR_RED) { // LL型单旋转
@@ -191,6 +192,7 @@ static void rotate(rbtree_node_t** p_node)
     }
 }
 
+/* 旋转操作，要仔细推敲NULL指针情况，和旋转后的颜色 */
 static void single_rotate_with_left(rbtree_node_t** p_root) {
     rbtree_node_t* old_root = *p_root;
     rbtree_node_t* new_root = old_root->left;
@@ -202,8 +204,6 @@ static void single_rotate_with_left(rbtree_node_t** p_root) {
     old_root->color = COLOR_RED;
 }
 
-
-/* 旋转操作，要仔细推敲NULL指针情况，和旋转后的颜色 */
 static void single_rotate_with_right(rbtree_node_t** p_root) {
     rbtree_node_t* old_root = *p_root;
     rbtree_node_t* new_root = old_root->right;
@@ -227,7 +227,7 @@ static void double_roate_with_right(rbtree_node_t** p_root) {
 
 inline static char node_color(rbtree_node_t* node)
 {
-    assert(node->color == COLOR_BLACK || node->color == COLOR_RED);
+    assert(node == NULL || node->color == COLOR_BLACK || node->color == COLOR_RED);
 
     return node == NULL ? COLOR_BLACK : node->color;
 }
