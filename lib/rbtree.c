@@ -96,6 +96,7 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
             (*p_node)->right->color = COLOR_BLACK;
 
             if (p_grandparent != NULL) {
+                /* FIXME:  旋转会改变树结构，从而导致p_grandparent, p_parent, p_node的值无效 */
                 rotate(p_grandparent);
             } else {
                 assert(p_parent == NULL || p_parent == p_root);

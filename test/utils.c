@@ -4,6 +4,8 @@
 
 #include "utils.h"
 
+#include "voidp.h"
+
 int* rand_array(int size)
 {
     int* a = malloc(sizeof(int) * size);
@@ -85,4 +87,9 @@ int* range(int start, int end, int step)
         arr = NULL;
     }
     return arr;
+}
+
+int int_cmp(const void* a, const void* b)
+{
+    return voidp2long(a) - voidp2long(b);
 }
