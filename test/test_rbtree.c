@@ -31,7 +31,6 @@ static void test(int* arr, int size)
     }
 
     for (int i = 0; i < size; i++) {
-        printf("%d\n", arr[i]);
         assert_true(rbtree_exists(tree, long2voidp(arr[i])));
         assert_int_equal(voidp2long(rbtree_get(tree, long2voidp(arr[i]), 0)), arr[i]);
     }

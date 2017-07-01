@@ -96,8 +96,15 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
             (*p_node)->right->color = COLOR_BLACK;
 
             if (p_grandparent != NULL) {
-                /* FIXME:  旋转会改变树结构，从而导致p_grandparent, p_parent, p_node的值无效 */
-                rotate(p_grandparent);
+                if (node_color(*p_parent) == COLOR_RED && node_color(*p_node) == COLOR_RED) {
+                    /*  旋转会改变树结构，因此，p_grandparent, p_parent, p_node指向的节点父子关系失效 */
+                    /* 一种方法是，在旋转之后，把p_node 设为p_grandparent, 从*p_grandparent到p_node的循环再来一次 */
+                    /* 显然， 重新从*p_grandparent循环到*p_node的过程中，不会发生新的旋转，循环也不会结束 */
+                    rotate(p_grandparent);
+                    p_node = p_grandparent;
+                    p_grandparent = NULL;
+                    p_parent = NULL;
+                }
             } else {
                 assert(p_parent == NULL || p_parent == p_root);
             }
