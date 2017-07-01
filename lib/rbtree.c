@@ -8,8 +8,15 @@
 
 static rbtree_node_t* find(rbtree_node_t* node, void* key, CmpFunc cmp_function);
 static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_function);
+enum {
+    REMOVE_MAX,
+    REMOVE_MIN,
+    REMOVE_KEY
+};
+static rbtree_node_t* remove_(rbtree_node_t** p_root, int removed_type, void* key, CmpFunc cmp_function);
 static rbtree_node_t* create_node(void* key, void* value, char color);
 static void rotate_inserting(rbtree_node_t** p_node);
+static void rotate_removing(rbtree_node_t** p_node);
 inline static char node_color(rbtree_node_t* node);
 inline static rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function);
 
@@ -45,7 +52,10 @@ void* rbtree_get(rbtree_t* tree, void* key, void* default_value)
 
 void rbtree_remove(rbtree_t* tree, void* key)
 {
-    assert(false && "Not implementation");
+    rbtree_node_t* removed = remove_(&tree->root, REMOVE_KEY, key, tree->cmp_function);
+    if (removed != NULL) {
+        fds_free(removed);
+    }
 }
 
 static void destory(rbtree_node_t* node);
@@ -124,6 +134,67 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
     } else {
         assert(p_parent == NULL || p_parent == p_root);
     }
+}
+
+static void rotate_removing(rbtree_node_t** p_node)
+{
+    assert(false);
+}
+
+static rbtree_node_t* remove_(rbtree_node_t** p_root, int removed_type, void* key, CmpFunc cmp_function)
+{
+    /* TODO: 未添加确保*p_node是红色的相关逻辑 */
+    assert(*p_root != NULL);
+
+    rbtree_node_t** p_parent = NULL;
+    rbtree_node_t** p_node = p_root;
+    bool finded = false;
+    while (!finded) {
+
+        rbtree_node_t** p_next;
+        if (removed_type == REMOVE_KEY) {
+            p_next = next(*p_node, key, cmp_function);
+            if (p_next != NULL && *p_next == NULL) {
+                return NULL;
+            }
+        } else if (removed_type == REMOVE_MIN) {
+            p_next = &(*p_node)->left;
+        } else if (removed_type == REMOVE_MAX) {
+            p_next = &(*p_node)->right;
+        } else {
+            assert(false);
+        }
+
+        finded = (p_next == NULL || *p_next == NULL);
+        if (!finded) {
+            p_parent = p_node;
+            p_node = p_next;
+        }
+    }
+
+
+    rbtree_node_t* replaced_node;
+    if ((*p_node)->left != NULL) {
+        replaced_node = remove_(&(*p_node)->left, REMOVE_MAX, NULL, NULL);
+
+        assert(replaced_node != NULL);
+
+    } else if ((*p_node)->right != NULL) {
+        replaced_node = remove_(&(*p_node)->right, REMOVE_MIN, NULL, NULL);
+
+        assert(replaced_node != NULL);
+
+    } else {
+        replaced_node = NULL;
+    }
+
+    rbtree_node_t* node = *p_node;
+    *p_node = replaced_node;
+    if (replaced_node != NULL) {
+        replaced_node->left = node->left;
+        replaced_node->right = node->right;
+    }
+    return node;
 }
 
 inline rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function)
