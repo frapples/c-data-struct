@@ -52,10 +52,11 @@ void* rbtree_get(rbtree_t* tree, void* key, void* default_value)
 
 void rbtree_remove(rbtree_t* tree, void* key)
 {
-    rbtree_node_t* removed = remove_(&tree->root, REMOVE_KEY, key, tree->cmp_function);
-    if (removed != NULL) {
-        fds_free(removed);
-    }
+    if (rbtree_exists(tree, key)) {
+        /* 为方便删除代码实现，无需考虑不存在的情况 */
+            rbtree_node_t* removed = remove_(&tree->root, REMOVE_KEY, key, tree->cmp_function);
+            fds_free(removed);
+        }
 }
 
 static void destory(rbtree_node_t* node);
@@ -141,6 +142,7 @@ static void rotate_removing(rbtree_node_t** p_node)
     assert(false);
 }
 
+static inline rbtree_node_t** remove__next(rbtree_node_t* node, int removed_type, void* key, CmpFunc cmp_function);
 static rbtree_node_t* remove_(rbtree_node_t** p_root, int removed_type, void* key, CmpFunc cmp_function)
 {
     /* TODO: 未添加确保*p_node是红色的相关逻辑 */
@@ -148,24 +150,12 @@ static rbtree_node_t* remove_(rbtree_node_t** p_root, int removed_type, void* ke
 
     rbtree_node_t** p_parent = NULL;
     rbtree_node_t** p_node = p_root;
+
     bool finded = false;
     while (!finded) {
 
-        rbtree_node_t** p_next;
-        if (removed_type == REMOVE_KEY) {
-            p_next = next(*p_node, key, cmp_function);
-            if (p_next != NULL && *p_next == NULL) {
-                return NULL;
-            }
-        } else if (removed_type == REMOVE_MIN) {
-            p_next = &(*p_node)->left;
-        } else if (removed_type == REMOVE_MAX) {
-            p_next = &(*p_node)->right;
-        } else {
-            assert(false);
-        }
-
-        finded = (p_next == NULL || *p_next == NULL);
+        rbtree_node_t** p_next = remove__next(*p_node, removed_type, key, cmp_function);
+        finded = (p_next == NULL);
         if (!finded) {
             p_parent = p_node;
             p_node = p_next;
@@ -173,6 +163,7 @@ static rbtree_node_t* remove_(rbtree_node_t** p_root, int removed_type, void* ke
     }
 
 
+    /* 选择删除左子树的最大节点或右子树的最小节点，并用其代替待删除节点 */
     rbtree_node_t* replaced_node;
     if ((*p_node)->left != NULL) {
         replaced_node = remove_(&(*p_node)->left, REMOVE_MAX, NULL, NULL);
@@ -195,6 +186,29 @@ static rbtree_node_t* remove_(rbtree_node_t** p_root, int removed_type, void* ke
         replaced_node->right = node->right;
     }
     return node;
+}
+
+static inline rbtree_node_t** remove__next(rbtree_node_t* node, int removed_type, void* key, CmpFunc cmp_function)
+{
+    rbtree_node_t** p_next;
+    if (removed_type == REMOVE_KEY) {
+        p_next = next(node, key, cmp_function);
+
+        assert(p_next == NULL || *p_next != NULL);
+
+    } else if (removed_type == REMOVE_MIN) {
+        p_next = &node->left;
+    } else if (removed_type == REMOVE_MAX) {
+        p_next = &node->right;
+    } else {
+        assert(false);
+    }
+
+    if (p_next == NULL || *p_next == NULL) {
+        return NULL;
+    } else {
+        return p_next;
+    }
 }
 
 inline rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function)
