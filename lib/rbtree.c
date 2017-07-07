@@ -176,6 +176,7 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
             finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
             if (!finded) {
                 if (node_color(*p_node) == COLOR_BLACK) {
+                    rotate_with_make_parent_red(p_parent);
                 } else /* (node_color(*p_node) == COLOR_RED) */ {
                     /* 什么都不用做*/
                 }
