@@ -56,7 +56,8 @@ void rbtree_remove(rbtree_t* tree, void* key)
     if (rbtree_exists(tree, key)) {
         /* 为方便删除代码实现，无需考虑不存在的情况 */
         rbtree_node_t* removed = remove_(NULL, &tree->root, REMOVE_KEY, key, tree->cmp_function);
-            fds_free(removed);
+        tree->root->color = COLOR_BLACK; /* 上面的操作会把根节点涂成红色 */
+        fds_free(removed);
         }
 }
 
@@ -146,6 +147,8 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
     /* 这是一个递归函数。当p_parent为NULL时，p_node一定是整棵rbtreed 根节点 */
     assert(*p_node != NULL);
 
+    assert((p_parent == NULL) + (removed_type == REMOVE_KEY) != 1);
+
     bool finded = false;
     while (!finded) {
         bool son_both_black = node_color((*p_node)->left) == COLOR_BLACK && node_color((*p_node)->right) == COLOR_BLACK;
@@ -166,7 +169,11 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
                 (*p_node)->color = COLOR_RED;
                 brother->color = COLOR_RED;
             } else {
+
                 rotate_with_make_son_red(p_parent);
+
+                assert(node_color(*p_node) == COLOR_RED);
+
             }
 
             finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
@@ -176,9 +183,13 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
             finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
             if (!finded) {
                 if (node_color(*p_node) == COLOR_BLACK) {
+
                     rotate_with_make_parent_red(p_parent);
+
+                    assert(node_color(*p_parent) == COLOR_RED && node_color(*p_node) == COLOR_BLACK);
+
                 } else /* (node_color(*p_node) == COLOR_RED) */ {
-                    /* 什么都不用做*/
+                    finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
                 }
             }
         }
@@ -215,9 +226,16 @@ static inline bool remove__next(rbtree_node_t* node, int removed_type, void* key
 {
     rbtree_node_t** p_next;
     if (removed_type == REMOVE_KEY) {
-        p_next = next(node, key, cmp_function);
+        int cmp = cmp_function(key, node->key);
+        if (cmp > 0) {
+            p_next = &node->left;
+        } else if (cmp < 0) {
+            p_next = &node->right;
+        } else {
+            return false;
+        }
 
-        assert(p_next == NULL || *p_next != NULL);
+        assert(*p_next != NULL && "传入remove_的key一定是存在的");
 
     } else if (removed_type == REMOVE_MIN) {
         p_next = &node->left;
@@ -227,10 +245,9 @@ static inline bool remove__next(rbtree_node_t* node, int removed_type, void* key
         assert(false);
     }
 
-    if (p_next == NULL || *p_next == NULL) {
+    if (*p_next == NULL) {
         return false;
     } else {
-        return p_next;
         *pp_parent = *pp_node;
         *pp_node = p_next;
         return true;
