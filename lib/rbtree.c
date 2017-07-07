@@ -15,8 +15,9 @@ enum {
 };
 static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, int removed_type, void* key, CmpFunc cmp_function);
 static rbtree_node_t* create_node(void* key, void* value, char color);
-static void rotate_inserting(rbtree_node_t** p_node);
-static void rotate_removing(rbtree_node_t** p_node);
+static void rotate_with_double_red(rbtree_node_t** p_node);
+static void rotate_with_make_son_red(rbtree_node_t** p_node);
+static void rotate_with_make_parent_red(rbtree_node_t** p_node);
 inline static char node_color(rbtree_node_t* node);
 inline static rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function);
 
@@ -111,7 +112,7 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
                     /*  旋转会改变树结构，因此，p_grandparent, p_parent, p_node指向的节点父子关系失效 */
                     /* 一种方法是，在旋转之后，把p_node 设为p_grandparent, 从*p_grandparent到p_node的循环再来一次 */
                     /* 显然， 重新从*p_grandparent循环到*p_node的过程中，不会发生新的旋转，循环也不会结束 */
-                    rotate_inserting(p_grandparent);
+                    rotate_with_double_red(p_grandparent);
                     p_node = p_grandparent;
                     p_grandparent = NULL;
                     p_parent = NULL;
@@ -131,15 +132,10 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
 
     *p_node = create_node(key, value, COLOR_RED);
     if (p_grandparent != NULL) {
-        rotate_inserting(p_grandparent);
+        rotate_with_double_red(p_grandparent);
     } else {
         assert(p_parent == NULL || p_parent == p_root);
     }
-}
-
-static void rotate_removing(rbtree_node_t** p_node)
-{
-    assert(false);
 }
 
 static inline bool remove__next(rbtree_node_t* node, int removed_type, void* key, CmpFunc cmp_function,
@@ -170,7 +166,7 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
                 (*p_node)->color = COLOR_RED;
                 brother->color = COLOR_RED;
             } else {
-                rotate_removing(p_parent);
+                rotate_with_make_son_red(p_parent);
             }
 
             finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
@@ -180,8 +176,6 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
             finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
             if (!finded) {
                 if (node_color(*p_node) == COLOR_BLACK) {
-                    /* 旋转前：parent黑，node黑，brother红。
-                       旋转后：parent仍然是node父亲，parent红，node仍然黑 */
                 } else /* (node_color(*p_node) == COLOR_RED) */ {
                     /* 什么都不用做*/
                 }
@@ -295,8 +289,11 @@ static void single_rotate_with_right(rbtree_node_t** p_root);
 static void double_roate_with_left(rbtree_node_t** p_root);
 static void double_roate_with_right(rbtree_node_t** p_root);
 
-/* 插入过程中的发生的旋转 */
-static void rotate_inserting(rbtree_node_t** p_node)
+/* 此旋转用于插入过程中。 设grandparent, parent, uncle, self
+   旋转前：parent和self为红色（破坏红黑树条件），uncle为黑色
+   旋转后：上述各节点的父子关系被破坏，树结构被旋转以满足红黑树条件。
+ */
+static void rotate_with_double_red(rbtree_node_t** p_node)
 {
     assert(*p_node != NULL);
 
@@ -330,7 +327,61 @@ static void rotate_inserting(rbtree_node_t** p_node)
     }
 }
 
-/* 旋转操作，要仔细推敲NULL指针情况，和旋转后的颜色 */
+/* 此旋转用于删除过程中。设parent, self, brother
+   旋转前：parent红色，self黑色，brother黑色，self儿子都是黑色，brother拥有红色儿子
+   旋转后：parent和self的父子关系不变，self一定会变为红色
+ */
+static void rotate_with_make_son_red(rbtree_node_t** p_node)
+{
+    assert(*p_node != NULL);
+    assert((*p_node)->left != NULL);
+    assert((*p_node)->right != NULL);
+
+    bool rotated = true;
+    rbtree_node_t* node;
+    if (node_color((*p_node)->left->left) == COLOR_RED) { // LL
+        node = (*p_node)->right;
+        single_rotate_with_left(p_node);
+    }  else if (node_color((*p_node)->left->right) == COLOR_RED) { // LR
+        node = (*p_node)->right;
+        double_roate_with_left(p_node);
+    } else if (node_color((*p_node)->right->left) == COLOR_RED) { // RL
+        node = (*p_node)->left;
+        double_roate_with_right(p_node);
+    }  else if (node_color((*p_node)->right->right) == COLOR_RED) { // RR
+        node = (*p_node)->left;
+        single_rotate_with_right(p_node);
+    } else {
+        rotated = false;
+    }
+
+    if (rotated) {
+        (*p_node)->color = COLOR_RED;
+        (*p_node)->left->color = COLOR_BLACK;
+        (*p_node)->right->color = COLOR_BLACK;
+        node->color = COLOR_RED;
+    }
+}
+
+/* 此旋转用于删除过程中。设parent, self, brother
+   旋转前：parent黑，node黑，brother红。
+   旋转后：parent仍然是node父亲，parent红，node仍然黑 */
+static void rotate_with_make_parent_red(rbtree_node_t** p_node)
+{
+    assert(*p_node != NULL);
+
+    bool left_red = node_color((*p_node)->left) == COLOR_RED;
+    bool right_red = node_color((*p_node)->right) == COLOR_RED;
+    if (left_red && !right_red) {
+        single_rotate_with_left(p_node);
+        (*p_node)->right->color = COLOR_RED;
+    } else if (!left_red && right_red) {
+        single_rotate_with_right(p_node);
+        (*p_node)->left->color = COLOR_RED;
+    }
+}
+
+/* 旋转操作，要仔细推敲NULL指针情况 */
 static void single_rotate_with_left(rbtree_node_t** p_root) {
     rbtree_node_t* old_root = *p_root;
     rbtree_node_t* new_root = old_root->left;
