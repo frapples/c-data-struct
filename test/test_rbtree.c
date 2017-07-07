@@ -13,6 +13,7 @@
 
 
 static void test(int* arr, int size);
+static void test_remove(int* arr, int size);
 
 void test_rbtree(void **state)
 {
@@ -20,6 +21,14 @@ void test_rbtree(void **state)
     test(range(0, 2 * size, 1), size);
     test(range(2 * size, 0, -1), size);
     test(rand_array(2 * size), size);
+}
+
+void test_rbtree_remove(void **state)
+{
+    int size = 1000;
+    test_remove(range(0, 2 * size, 1), size);
+    test_remove(range(2 * size, 0, -1), size);
+    test_remove(rand_array(2 * size), size);
 }
 
 static void test(int* arr, int size)
@@ -37,6 +46,32 @@ static void test(int* arr, int size)
 
     for (int i = size; i < 2 * size; i++) {
         assert_false(rbtree_exists(tree, long2voidp(arr[i])));
+    }
+
+    assert_true(rbtree_check_struct(tree));
+
+    rbtree_destory(tree);
+}
+
+static void test_remove(int* arr, int size)
+{
+    rbtree_t* tree = rbtree_create(int_cmp);
+
+    for (int i = 0; i < 2 * size; i++) {
+        rbtree_put(tree, long2voidp(arr[i]), long2voidp(arr[i]));
+    }
+
+    for (int i = 0; i < size; i++) {
+        rbtree_remove(tree, long2voidp(arr[i]));
+    }
+
+    for (int i = 0; i < size; i++) {
+        assert_false(rbtree_exists(tree, long2voidp(arr[i])));
+    }
+
+    for (int i = size; i < 2 * size; i++) {
+        assert_true(rbtree_exists(tree, long2voidp(arr[i])));
+        assert_int_equal(voidp2long(rbtree_get(tree, long2voidp(arr[i]), 0)), arr[i]);
     }
 
     assert_true(rbtree_check_struct(tree));
