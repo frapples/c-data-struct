@@ -17,7 +17,7 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
 static rbtree_node_t* create_node(void* key, void* value, char color);
 static void rotate_with_double_red(rbtree_node_t** p_node);
 static void rotate_with_make_son_red(rbtree_node_t** p_node);
-static void rotate_with_make_parent_red(rbtree_node_t** p_node);
+static rbtree_node_t** rotate_with_make_parent_red(rbtree_node_t** p_node);
 inline static char node_color(rbtree_node_t* node);
 inline static rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function);
 
@@ -184,7 +184,7 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
             if (!finded) {
                 if (node_color(*p_node) == COLOR_BLACK) {
 
-                    rotate_with_make_parent_red(p_parent);
+                    p_parent = rotate_with_make_parent_red(p_parent);
 
                     assert(node_color(*p_parent) == COLOR_RED && node_color(*p_node) == COLOR_BLACK);
 
@@ -227,9 +227,9 @@ static inline bool remove__next(rbtree_node_t* node, int removed_type, void* key
     rbtree_node_t** p_next;
     if (removed_type == REMOVE_KEY) {
         int cmp = cmp_function(key, node->key);
-        if (cmp > 0) {
+        if (cmp < 0) {
             p_next = &node->left;
-        } else if (cmp < 0) {
+        } else if (cmp > 0) {
             p_next = &node->right;
         } else {
             return false;
@@ -383,8 +383,11 @@ static void rotate_with_make_son_red(rbtree_node_t** p_node)
 
 /* 此旋转用于删除过程中。设parent, self, brother
    旋转前：parent黑，node黑，brother红。
-   旋转后：parent仍然是node父亲，parent红，node仍然黑 */
-static void rotate_with_make_parent_red(rbtree_node_t** p_node)
+   旋转后：parent仍然是node父亲，parent红，node仍然黑
+   返回值：（重要），为了方便旋转，传入的是二级指针。旋转后该二级指针指向非原本项而是旋转后的根节点。
+   返回原本项的二级指针
+*/
+static rbtree_node_t** rotate_with_make_parent_red(rbtree_node_t** p_node)
 {
     assert(*p_node != NULL);
 
@@ -393,9 +396,13 @@ static void rotate_with_make_parent_red(rbtree_node_t** p_node)
     if (left_red && !right_red) {
         single_rotate_with_left(p_node);
         (*p_node)->right->color = COLOR_RED;
+        return &(*p_node)->right;
     } else if (!left_red && right_red) {
         single_rotate_with_right(p_node);
         (*p_node)->left->color = COLOR_RED;
+        return &(*p_node)->left;
+    } else {
+        return NULL;
     }
 }
 

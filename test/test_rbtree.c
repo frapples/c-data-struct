@@ -61,6 +61,8 @@ static void test_remove(int* arr, int size)
         rbtree_put(tree, long2voidp(arr[i]), long2voidp(arr[i]));
     }
 
+    assert_true(rbtree_check_struct(tree));
+
     for (int i = 0; i < size; i++) {
         rbtree_remove(tree, long2voidp(arr[i]));
     }
