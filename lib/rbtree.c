@@ -62,18 +62,21 @@ void rbtree_remove(rbtree_t* tree, void* key)
 
     bool is_left;
     p_delnode = remove_(p_delnode, &is_left);
-
-    /* 此时， 树中可能有两个节点拥有相同的key，其中只有一个是叶子节点，是要最后删除的 */
+    /* 此时， 树中可能有两个节点拥有相同的key，这时：
+       一个是非叶子节点A。
+       一个是叶子节点B，是要最后删除的。
+       当要寻找叶子节点B时，is_left变量指示当搜索到达节点A时应往那边走
+     */
 
     assert(*p_delnode != NULL && (*p_delnode)->left == NULL && (*p_delnode)->right == NULL);
 
     rbtree_node_t* node = *p_delnode;
-    if (node_color(*p_delnode) == COLOR_RED) {
-        *p_delnode = NULL;
-    } else {
+    if (node_color(*p_delnode) == COLOR_BLACK) {
         remove_black_leaf(&tree->root, is_left, (*p_delnode)->key, tree->cmp_function);
         tree->root->color = COLOR_RED;
     }
+
+    *p_delnode = NULL;
     fds_free(node);
 }
 
@@ -242,13 +245,18 @@ static void remove_black_leaf(rbtree_node_t** p_root, bool is_left, void* key, C
                     p_parent = p_node, p_node = p_next;
                 }
             } else {
-                /* TODO */
+
+                assert(false);
             }
         }
 
         assert(node_color(*p_parent) == COLOR_RED);
 
-        p_next = remove_black_leaf__next(*p_node, is_left, key, cmp_function);
+        if (p_node != NULL) {
+            p_next = remove_black_leaf__next(*p_node, is_left, key, cmp_function);
+        } else {
+            p_next = NULL;
+        }
     }
 }
 
