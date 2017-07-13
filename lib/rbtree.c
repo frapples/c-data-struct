@@ -6,14 +6,15 @@
 #define COLOR_BLACK 0
 #define COLOR_RED 1
 
-static rbtree_node_t* find(rbtree_node_t* node, void* key, CmpFunc cmp_function);
+static rbtree_node_t** find(rbtree_node_t** p_node, void* key, CmpFunc cmp_function);
 static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_function);
 enum {
     REMOVE_MAX,
     REMOVE_MIN,
     REMOVE_KEY
 };
-static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, int removed_type, void* key, CmpFunc cmp_function);
+static rbtree_node_t** remove_(rbtree_node_t** node, bool* p_is_left);
+static void remove_black_leaf(rbtree_node_t** p_node, bool is_left, void* key, CmpFunc cmp_function);
 static rbtree_node_t* create_node(void* key, void* value, char color);
 static void rotate_with_double_red(rbtree_node_t** p_node);
 static void rotate_with_make_son_red(rbtree_node_t** p_node);
@@ -42,23 +43,38 @@ void rbtree_put(rbtree_t* tree, void* key, void* value)
 
 bool rbtree_exists(rbtree_t* tree, void* key)
 {
-    return find(tree->root, key, tree->cmp_function) != NULL;
+    return find(&tree->root, key, tree->cmp_function) != NULL;
 }
 
 void* rbtree_get(rbtree_t* tree, void* key, void* default_value)
 {
-    rbtree_node_t* node = find(tree->root, key, tree->cmp_function);
-    return node != NULL ? node->value : default_value;
+    rbtree_node_t** p_node = find(&tree->root, key, tree->cmp_function);
+    return p_node != NULL ? (*p_node)->value : default_value;
 }
+
 
 void rbtree_remove(rbtree_t* tree, void* key)
 {
-    if (rbtree_exists(tree, key)) {
-        /* 为方便删除代码实现，无需考虑不存在的情况 */
-        rbtree_node_t* removed = remove_(NULL, &tree->root, REMOVE_KEY, key, tree->cmp_function);
-        tree->root->color = COLOR_BLACK; /* 上面的操作会把根节点涂成红色 */
-        fds_free(removed);
-        }
+    rbtree_node_t** p_delnode = find(&tree->root, key, tree->cmp_function);
+    if (p_delnode == NULL) {
+        return;
+    }
+
+    bool is_left;
+    p_delnode = remove_(p_delnode, &is_left);
+
+    /* 此时， 树中可能有两个节点拥有相同的key，其中只有一个是叶子节点，是要最后删除的 */
+
+    assert(*p_delnode != NULL && (*p_delnode)->left == NULL && (*p_delnode)->right == NULL);
+
+    rbtree_node_t* node = *p_delnode;
+    if (node_color(*p_delnode) == COLOR_RED) {
+        *p_delnode = NULL;
+    } else {
+        remove_black_leaf(&tree->root, is_left, (*p_delnode)->key, tree->cmp_function);
+        tree->root->color = COLOR_RED;
+    }
+    fds_free(node);
 }
 
 static void destory(rbtree_node_t* node);
@@ -77,18 +93,18 @@ static void destory(rbtree_node_t* node)
     }
 }
 
-static rbtree_node_t* find(rbtree_node_t* node, void* key, CmpFunc cmp_function)
+static rbtree_node_t** find(rbtree_node_t** p_node, void* key, CmpFunc cmp_function)
 {
-    if (node == NULL) {
+    if (*p_node == NULL) {
         return NULL;
     } else {
-        int cmp = cmp_function(key, node->key);
+        int cmp = cmp_function(key, (*p_node)->key);
         if (cmp < 0) {
-            return find(node->left, key, cmp_function);
+            return find(&(*p_node)->left, key, cmp_function);
         } else if (cmp > 0) {
-            return find(node->right, key, cmp_function);
+            return find(&(*p_node)->right, key, cmp_function);
         } else {
-            return node;
+            return p_node;
         }
     }
 }
@@ -139,30 +155,59 @@ static void insert(rbtree_node_t** p_root, void* key, void* value, CmpFunc cmp_f
     }
 }
 
-static inline bool remove__next(rbtree_node_t* node, int removed_type, void* key, CmpFunc cmp_function,
-                                           rbtree_node_t*** pp_parent, rbtree_node_t*** pp_node);
-
-static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, int removed_type, void* key, CmpFunc cmp_function)
+static rbtree_node_t** remove_(rbtree_node_t** p_node, bool* p_is_left)
 {
-    /* 这是一个递归函数。当p_parent为NULL时，p_node一定是整棵rbtreed 根节点 */
     assert(*p_node != NULL);
 
-    assert((p_parent == NULL) + (removed_type == REMOVE_KEY) != 1);
+    rbtree_node_t** p_replace;
+    if ((*p_node)->left != NULL) {
+        // 找左子树最大值
+        *p_is_left = true;
+        p_replace =&(*p_node)->left;
+        while ((*p_replace)->right != NULL) {
+            p_replace = &(*p_replace)->right;
+        }
 
-    bool finded = false;
-    while (!finded) {
+    } else if ((*p_node)->right != NULL) {
+        // 找右子树最小值
+        *p_is_left = false;
+        p_replace = &(*p_node)->right;
+        while ((*p_replace)->left != NULL) {
+            p_replace = &(*p_replace)->left;
+        }
+    } else {
+        return p_node;
+    }
+
+    (*p_node)->key = (*p_replace)->key;
+    (*p_node)->value = (*p_replace)->value;
+    return remove_(p_replace, p_is_left);
+}
+
+static rbtree_node_t** remove_black_leaf__next(rbtree_node_t* node, bool is_left, void* key, CmpFunc cmp_function);
+static void remove_black_leaf(rbtree_node_t** p_root, bool is_left, void* key, CmpFunc cmp_function)
+{
+    rbtree_node_t** p_parent = NULL;
+    rbtree_node_t** p_node = p_root;
+
+    rbtree_node_t** p_next = remove_black_leaf__next(*p_node, is_left, key, cmp_function);
+    while (p_node != NULL) {
         bool son_both_black = node_color((*p_node)->left) == COLOR_BLACK && node_color((*p_node)->right) == COLOR_BLACK;
         if (p_parent == NULL && son_both_black) {
 
             (*p_node)->color = COLOR_RED;
-            finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
 
+            p_parent = p_node, p_node = p_next;
         } else if (p_parent != NULL && son_both_black) {
 
             assert(node_color(*p_parent) == COLOR_RED);
 
             rbtree_node_t* brother = &(*p_parent)->left == p_node ? (*p_parent)->right : (*p_parent)->left;
 
+            assert(node_color(*p_node) == COLOR_BLACK);
+            assert(brother != NULL);
+
+            rbtree_node_t* node = *p_node;
             if (node_color(brother->left) == COLOR_BLACK && node_color(brother->right) == COLOR_BLACK) {
                 /* 颜色翻转*/
                 (*p_parent)->color = COLOR_BLACK;
@@ -172,16 +217,21 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
 
                 rotate_with_make_son_red(p_parent);
 
+                assert(node == *p_node);
                 assert(node_color(*p_node) == COLOR_RED);
 
             }
 
-            finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
+            assert((*p_node)->color == COLOR_RED);
 
+            p_parent = p_node, p_node = p_next;
         } else /* 无论p_parent 是不是 NULL，!son_both_black时 */ {
             /* 往下走一层 */
-            finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
-            if (!finded) {
+            p_parent = p_node, p_node = p_next;
+
+            if (p_node != NULL) {
+                p_next = remove_black_leaf__next(*p_node, is_left, key, cmp_function);
+
                 if (node_color(*p_node) == COLOR_BLACK) {
 
                     p_parent = rotate_with_make_parent_red(p_parent);
@@ -189,69 +239,39 @@ static rbtree_node_t* remove_(rbtree_node_t** p_parent, rbtree_node_t** p_node, 
                     assert(node_color(*p_parent) == COLOR_RED && node_color(*p_node) == COLOR_BLACK);
 
                 } else /* (node_color(*p_node) == COLOR_RED) */ {
-                    finded = !remove__next(*p_node, removed_type, key, cmp_function, &p_parent, &p_node);
+                    p_parent = p_node, p_node = p_next;
                 }
+            } else {
+                /* TODO */
             }
         }
+
+        assert(node_color(*p_parent) == COLOR_RED);
+
+        p_next = remove_black_leaf__next(*p_node, is_left, key, cmp_function);
     }
-
-
-    /* 选择删除左子树的最大节点或右子树的最小节点，并用其代替待删除节点 */
-    rbtree_node_t* replaced_node;
-    if ((*p_node)->left != NULL) {
-        replaced_node = remove_(p_node, &(*p_node)->left, REMOVE_MAX, NULL, NULL);
-
-        assert(replaced_node != NULL);
-
-    } else if ((*p_node)->right != NULL) {
-        replaced_node = remove_(p_node, &(*p_node)->right, REMOVE_MIN, NULL, NULL);
-
-        assert(replaced_node != NULL);
-
-    } else {
-        replaced_node = NULL;
-    }
-
-    rbtree_node_t* node = *p_node;
-    *p_node = replaced_node;
-    if (replaced_node != NULL) {
-        replaced_node->left = node->left;
-        replaced_node->right = node->right;
-    }
-    return node;
 }
 
-static inline bool remove__next(rbtree_node_t* node, int removed_type, void* key, CmpFunc cmp_function,
-                                           rbtree_node_t*** pp_parent, rbtree_node_t*** pp_node)
+static rbtree_node_t** remove_black_leaf__next(rbtree_node_t* node, bool is_left, void* key, CmpFunc cmp_function)
 {
+    int cmp = cmp_function(key, node->key);
+
     rbtree_node_t** p_next;
-    if (removed_type == REMOVE_KEY) {
-        int cmp = cmp_function(key, node->key);
-        if (cmp < 0) {
-            p_next = &node->left;
-        } else if (cmp > 0) {
-            p_next = &node->right;
-        } else {
-            return false;
-        }
-
-        assert(*p_next != NULL && "传入remove_的key一定是存在的");
-
-    } else if (removed_type == REMOVE_MIN) {
+    if (cmp < 0) {
         p_next = &node->left;
-    } else if (removed_type == REMOVE_MAX) {
+    } else if (cmp > 0) {
         p_next = &node->right;
     } else {
-        assert(false);
+        if (node->left == NULL && node->right == NULL) {
+            return NULL;
+        } else {
+            p_next = is_left ? &node->left : &node->right;
+        }
     }
 
-    if (*p_next == NULL) {
-        return false;
-    } else {
-        *pp_parent = *pp_node;
-        *pp_node = p_next;
-        return true;
-    }
+    assert(*p_next != NULL);
+
+    return p_next;
 }
 
 inline rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function)
