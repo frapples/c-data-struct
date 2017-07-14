@@ -19,6 +19,7 @@ static rbtree_node_t* create_node(void* key, void* value, char color);
 static void rotate_with_double_red(rbtree_node_t** p_node);
 static void rotate_with_make_son_red(rbtree_node_t** p_node);
 static rbtree_node_t** rotate_with_make_parent_red(rbtree_node_t** p_node);
+static int check_struct(rbtree_node_t* node); /* 返回路径上黑色节点的数目。如果不满足红黑树路径节点数量的要求或红色节点的要求，返回负数 */
 inline static char node_color(rbtree_node_t* node);
 inline static rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function);
 
@@ -73,8 +74,10 @@ void rbtree_remove(rbtree_t* tree, void* key)
     rbtree_node_t* node = *p_delnode;
     if (node_color(*p_delnode) == COLOR_BLACK) {
         remove_black_leaf(&tree->root, is_left, (*p_delnode)->key, tree->cmp_function);
-        tree->root->color = COLOR_RED;
+        tree->root->color = COLOR_BLACK;
     }
+
+    assert(node_color(node) == COLOR_RED);
 
     *p_delnode = NULL;
     fds_free(node);
@@ -195,6 +198,9 @@ static void remove_black_leaf(rbtree_node_t** p_root, bool is_left, void* key, C
 
     rbtree_node_t** p_next = remove_black_leaf__next(*p_node, is_left, key, cmp_function);
     while (p_node != NULL) {
+
+        /* assert(check_struct(*p_root) >= 0); */
+
         bool son_both_black = node_color((*p_node)->left) == COLOR_BLACK && node_color((*p_node)->right) == COLOR_BLACK;
         if (p_parent == NULL && son_both_black) {
 
@@ -233,6 +239,7 @@ static void remove_black_leaf(rbtree_node_t** p_root, bool is_left, void* key, C
             p_parent = p_node, p_node = p_next;
 
             if (p_node != NULL) {
+
                 p_next = remove_black_leaf__next(*p_node, is_left, key, cmp_function);
 
                 if (node_color(*p_node) == COLOR_BLACK) {
@@ -296,7 +303,6 @@ inline rbtree_node_t** next(rbtree_node_t* node, void* key, CmpFunc cmp_function
     }
 }
 
-static int check_struct(rbtree_node_t* node); /* 返回路径上黑色节点的数目。如果不满足红黑树路径节点数量的要求或红色节点的要求，返回负数 */
 bool rbtree_check_struct(rbtree_t* tree)
 {
     return node_color(tree->root) == COLOR_BLACK && check_struct(tree->root) > 0;
@@ -421,17 +427,21 @@ static rbtree_node_t** rotate_with_make_parent_red(rbtree_node_t** p_node)
 
     bool left_red = node_color((*p_node)->left) == COLOR_RED;
     bool right_red = node_color((*p_node)->right) == COLOR_RED;
+
+    rbtree_node_t** p_result;
     if (left_red && !right_red) {
         single_rotate_with_left(p_node);
-        (*p_node)->right->color = COLOR_RED;
-        return &(*p_node)->right;
+        p_result = &(*p_node)->right;
     } else if (!left_red && right_red) {
         single_rotate_with_right(p_node);
-        (*p_node)->left->color = COLOR_RED;
-        return &(*p_node)->left;
+        p_result = &(*p_node)->left;
     } else {
         return NULL;
     }
+
+    (*p_node)->color = COLOR_BLACK;
+    (*p_result)->color = COLOR_RED;
+    return p_result;
 }
 
 /* 旋转操作，要仔细推敲NULL指针情况 */
