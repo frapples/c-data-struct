@@ -5,12 +5,12 @@
 #include "utils.h"
 
 typedef struct {
-    arraylist_t array;
+    arraylist_t* array;
     CmpFunc cmp_function;
 }priority_queue_t;
 
 priority_queue_t* priority_queue_create(CmpFunc);
-priority_queue_t* priority_queue_insert(void* data);
+void priority_queue_insert(priority_queue_t* queue, void* data);
 void* priority_queue_delete_min(priority_queue_t* queue);
 void* priority_queue_get_min(priority_queue_t* queue);
 void priority_queue_destory(priority_queue_t* queue);
