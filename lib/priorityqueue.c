@@ -18,7 +18,7 @@ priority_queue_t* priority_queue_create(CmpFunc cmpfunc) {
 
 void priority_queue_insert(priority_queue_t* queue, void* data)
 {
-    arraylist_append(queue->array, data);
+    arraylist_append(queue->array, &data);
 
     size_t i = arraylist_len(queue->array) - 1;
     while (i > 0) {
