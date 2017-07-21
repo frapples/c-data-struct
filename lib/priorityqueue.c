@@ -39,8 +39,8 @@ void* priority_queue_delete_min(priority_queue_t* queue)
     assert(priority_queue_len(queue) > 0);
 
     void* min = *ARRAYLIST_GET(queue->array, 0, void *);
-    size_t len = arraylist_len(queue->array);
-    void* last = *ARRAYLIST_GET(queue->array, len - 1, void *);
+    size_t len = arraylist_len(queue->array) - 1; /* 这是移除之后的数组长度 */
+    void* last = *ARRAYLIST_GET(queue->array, len, void *);
 
     size_t i = ROOT_INDEX;
     while (LEFT_INDEX(i) < len || RIGHT_INDEX(i) < len) {
@@ -69,8 +69,9 @@ void* priority_queue_delete_min(priority_queue_t* queue)
             i = min_index;
         }
     }
+    *ARRAYLIST_GET(queue->array, i, void*) = last; /* 出来后i可能指向还是空洞的叶子节点 */
 
-    arraylist_remove(queue->array, len - 1, len);
+    arraylist_remove(queue->array, len, len + 1);
 
     return min;
 }
