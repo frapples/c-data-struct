@@ -31,31 +31,32 @@ skiplist_t* skiplist_create(CmpFunc cmp_function)
 
 bool skiplist_exists(skiplist_t* list, void* key)
 {
-    return !is_end_node(find(list->head, key, list->cmp_function));
+    return find(list->head, key, list->cmp_function) != NULL;
 }
 
 void* skiplist_get(skiplist_t* list, void* key, void* default_value)
 {
     skiplist_node_t* node = find(list->head, key, list->cmp_function);
-
-    assert(is_end_node(node) || list->cmp_function(key, node->key));
-
-    return is_end_node(node) ? default_value : node->value;
+    return node == NULL ? default_value : node->value;
 }
 
-static skiplist_node_t* find(skiplist_node_t* first, void* key, CmpFunc cmpf)
+static skiplist_node_t* find(skiplist_node_t* node, void* key, CmpFunc cmpf)
 {
-    assert(is_end_node(first));
+    assert(is_end_node(node));
 
-    skiplist_node_t* node = first;
-    skiplist_node_t* next = first;
-    while (next != NULL) {
-        node = next;
+    while (node != NULL) {
 
-        next = cmp(key, node, cmpf) > 0 ? node->right : node->down;
+        int c = cmp(key, node, cmpf);
+        if (c > 0) {
+            node = node->right;
+        } else if (c < 0) {
+            node = node->down;
+        } else {
+            return node;
+        }
     }
 
-    return node;
+    return NULL;
 }
 
 void skiplist_put(skiplist_t* list, void* key, void* value)
@@ -65,7 +66,7 @@ void skiplist_put(skiplist_t* list, void* key, void* value)
 
         skiplist_node_t* node = level_node;
         while (cmp(key, node, list->cmp_function) > 0) {
-            node = level_node->right;
+            node = node->right;
         }
 
         assert(node != NULL);
@@ -95,7 +96,7 @@ void skiplist_put(skiplist_t* list, void* key, void* value)
     }
 
     if (!is_end_node(list->head)) {
-        create_end_node(NULL, list->head);
+        list->head = create_end_node(NULL, list->head);
     }
 }
 
