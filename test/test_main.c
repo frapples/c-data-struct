@@ -15,8 +15,8 @@ void test_hashtable(void **state);
 void test_avltree(void **state);
 void test_rbtree(void **state);
 void test_rbtree_remove(void **state);
-
 void test_priorityqueue(void **state);
+void test_skiplist(void **state);
 
 void test_voidp(void **state)
 {
@@ -66,6 +66,7 @@ int main(void)
         unit_test(test_rbtree),
         unit_test(test_rbtree_remove),
         unit_test(test_priorityqueue),
+        unit_test(test_skiplist),
     };
     return run_tests(tests);
 }
