@@ -118,7 +118,9 @@ static void insert_before(skiplist_node_t* prev, void* key, void* value)
 
 void skiplist_remove(skiplist_t* list, void* key)
 {
-    skiplist_node_t* level_node = list->head;
+    assert(is_end_node(list->head));
+
+    skiplist_node_t* level_node = list->head->down;
     while (level_node != NULL) {
 
         skiplist_node_t* node = level_node;
@@ -173,6 +175,12 @@ void skiplist_remove(skiplist_t* list, void* key)
         }
 
             level_node = node->down;
+    }
+
+    if (is_end_node( list->head->down)) {
+        skiplist_node_t* del = list->head;
+        list->head = list->head->down;
+        fds_free(del);
     }
 }
 
