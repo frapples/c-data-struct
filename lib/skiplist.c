@@ -20,6 +20,8 @@ inline static int cmp(void* key, skiplist_node_t* node, CmpFunc cmpf)
 static skiplist_node_t* find(skiplist_node_t* first, void* key, CmpFunc cmpf);
 static void insert_before(skiplist_node_t* prev, void* key, void* value);
 static skiplist_node_t* create_end_node(skiplist_node_t* right, skiplist_node_t* down);
+static void remove_skiplist_node(skiplist_node_t* prev, skiplist_node_t* node, bool is_indexed);
+static skiplist_node_t* segment_last(skiplist_node_t* up_node);
 
 skiplist_t* skiplist_create(CmpFunc cmp_function)
 {
@@ -116,6 +118,62 @@ static void insert_before(skiplist_node_t* prev, void* key, void* value)
 
 void skiplist_remove(skiplist_t* list, void* key)
 {
+    skiplist_node_t* level_node = list->head;
+    while (level_node != NULL) {
+
+        skiplist_node_t* node = level_node;
+        skiplist_node_t* prev = NULL;
+        while (cmp(key, node, list->cmp_function) > 0) {
+            prev = node;
+            node = node->right;
+        }
+
+#define SEG_EQ_1(n) (is_end_node(n) ? is_end_node(node->down->right) : cmp((n)->key, (n)->down->right, list->cmp_function) == 0)
+
+        if (node->down == NULL) {
+
+            remove_skiplist_node(prev, node, node == level_node);
+
+        } else if (cmp(key, node, list->cmp_function) == 0) {
+
+            assert(!is_end_node(node));
+
+            if (SEG_EQ_1(node)) {
+                remove_skiplist_node(prev, node, node == level_node);
+            } else {
+                skiplist_node_t* seg_last_node = segment_last(node);
+                node->key = seg_last_node->key;
+                node->value = seg_last_node->value;
+            }
+
+        } else if (SEG_EQ_1(node)) {
+
+            if (node == level_node) { /* 向右合并 */
+                if (SEG_EQ_1(node->right)) {
+                    remove_skiplist_node(prev, node, node == level_node);
+                } else {
+                    node->key = node->right->down->key;
+                    node->value = node->right->down->value;
+                    node->right->down = node->right->down->right;
+                }
+            } else { /* 向左合并 */
+
+                assert(prev->right == node);
+
+                if (SEG_EQ_1(prev)) {
+                    *prev = *node;
+                    fds_free(node);
+                } else {
+                    skiplist_node_t* last = segment_last(prev);
+                    node->down = last;
+                    prev->key = last->key;
+                    prev->value = last->value;
+                }
+            }
+        }
+
+            level_node = node->down;
+    }
 }
 
 static void destory_list(skiplist_node_t* list);
@@ -138,6 +196,17 @@ static void destory_list(skiplist_node_t* node)
     }
 }
 
+static skiplist_node_t* segment_last(skiplist_node_t* up_node)
+{
+    assert(!is_end_node(up_node));
+    assert(up_node->down != NULL);
+
+    skiplist_node_t* last;
+    for (skiplist_node_t* it = up_node->down; it->right != up_node->right->down; it = it->right) {
+        last = it;
+    }
+    return last;
+}
 
 static skiplist_node_t* create_end_node(skiplist_node_t* right, skiplist_node_t* down)
 {
@@ -147,4 +216,20 @@ static skiplist_node_t* create_end_node(skiplist_node_t* right, skiplist_node_t*
     node->right = right;
     node->down = down;
     return node;
+}
+
+static void remove_skiplist_node(skiplist_node_t* prev, skiplist_node_t* node, bool is_indexed)
+{
+    skiplist_node_t* del_node;
+    if (is_indexed) {
+        del_node = node->right;
+        *node = *del_node;
+    } else {
+
+        assert(prev->right == node);
+
+        del_node = node;
+        prev->right = node->right;
+    }
+    fds_free(del_node);
 }
