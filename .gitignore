@@ -1,6 +1,8 @@
 #
 .*.*
 
+third-party/
+
 
 # Object files
 *.o

@@ -15,8 +15,8 @@ set(CMAKE_C_FLAGS_RELEASE "$ENV{CFLAGS} -O3 -Wall -std=c99")
 include_directories("${PROJECT_SOURCE_DIR}/lib")
 
 # cmockery
-include_directories("${PROJECT_SOURCE_DIR}/../cmockery")
-link_directories("${PROJECT_SOURCE_DIR}/../cmockery")
+include_directories("${PROJECT_SOURCE_DIR}/third-party/libcmockery/include")
+link_directories("${PROJECT_SOURCE_DIR}/third-party/libcmockery/lib")
 
 
 aux_source_directory("lib/" LIB_SRCS)
